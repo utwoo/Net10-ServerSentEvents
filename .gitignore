@@ -1,0 +1,40 @@
+## .NET build output
+[Bb]in/
+[Oo]bj/
+
+## Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+## Test results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.trx
+
+## NuGet
+*.nupkg
+*.snupkg
+.nuget/
+
+## ASP.NET Core development certificates
+https
+
+## Local environment and secrets
+.env
+.env.*
+!.env.example
+secrets.json
+
+## OS files
+.DS_Store
+Thumbs.db
