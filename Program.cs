@@ -4,19 +4,10 @@ var app = builder.Build();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-app.MapGet("/events", async (HttpResponse response, CancellationToken cancellationToken) =>
-{
-	response.Headers.ContentType = "text/event-stream";
-	response.Headers.CacheControl = "no-cache";
+app.MapGet("/events", (CancellationToken cancellationToken) =>
+	TypedResults.ServerSentEvents(GenerateEvents(cancellationToken)));
 
-	await foreach (var number in GenerateEvents(cancellationToken))
-	{
-		await response.WriteAsync($"event: tick\ndata: {{\"number\":{number},\"sentAt\":\"{DateTimeOffset.UtcNow:O}\"}}\n\n", cancellationToken);
-		await response.Body.FlushAsync(cancellationToken);
-	}
-});
-
-static async IAsyncEnumerable<int> GenerateEvents(
+static async IAsyncEnumerable<System.Net.ServerSentEvents.SseItem<object>> GenerateEvents(
 	[System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
 {
 	var number = 0;
@@ -24,7 +15,9 @@ static async IAsyncEnumerable<int> GenerateEvents(
 	while (!cancellationToken.IsCancellationRequested)
 	{
 		await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
-		yield return ++number;
+		yield return new System.Net.ServerSentEvents.SseItem<object>(
+			new { number = ++number, sentAt = DateTimeOffset.UtcNow },
+			eventType: "tick");
 	}
 }
 
