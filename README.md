@@ -26,26 +26,55 @@ dotnet --version
 
 ## 运行项目
 
-在项目根目录执行：
+首次使用时信任 ASP.NET Core 开发证书：
 
 ```powershell
-dotnet run --urls http://localhost:5080
+dotnet dev-certs https --trust
+```
+
+在项目根目录使用 HTTPS 配置启动：
+
+```powershell
+dotnet run --launch-profile https
 ```
 
 打开浏览器访问：
 
 ```text
-http://localhost:5080
+https://localhost:7141
 ```
 
-点击“建立连接”后，页面会通过浏览器原生 `EventSource` API 连接 `/events`，并显示持续收到的事件。
+点击“建立连接”后，页面会通过浏览器原生 `EventSource` API 连接 `/events`，并显示持续收到的事件。现代浏览器通过 TLS ALPN 与 Kestrel 协商 HTTP/2，页面和 SSE 流会复用同一条 HTTP/2 连接。
+
+开发环境的 Kestrel 配置保留了 `http://localhost:5120` HTTP/1.1 入口用于对照测试；HTTP/2 请使用 HTTPS 地址。
+
+## HTTP/2 配置
+
+`appsettings.Development.json` 中的 HTTPS 端点使用以下协议配置：
+
+```json
+"Https": {
+	"Url": "https://localhost:7141",
+	"Protocols": "Http1AndHttp2"
+}
+```
+
+TLS 的 ALPN 协商会为支持 HTTP/2 的客户端选择 `h2`，不支持的客户端仍可回退到 HTTP/1.1。SSE 的事件格式和浏览器端 `EventSource` API 无需修改。
+
+可以在浏览器开发者工具的 Network 面板中查看 `/events` 请求，其 Protocol 应为 `h2`。也可以使用支持 HTTP/2 的 curl 验证：
+
+```powershell
+curl.exe --http2 --insecure --no-buffer https://localhost:7141/events
+```
+
+`--insecure` 仅用于本地开发证书；生产环境应使用受信任证书。由于 SSE 是持续连接，使用 `Ctrl+C` 停止命令。
 
 ## SSE 接口
 
 ### 请求
 
 ```http
-GET /events HTTP/1.1
+GET /events HTTP/2
 Accept: text/event-stream
 ```
 
@@ -54,10 +83,9 @@ Accept: text/event-stream
 服务端返回以下响应头：
 
 ```http
-HTTP/1.1 200 OK
+HTTP/2 200
 Content-Type: text/event-stream
 Cache-Control: no-cache
-Connection: keep-alive
 ```
 
 事件示例：
@@ -68,10 +96,10 @@ data: {"number":1,"sentAt":"2026-09-04T03:19:51.4174085+00:00"}
 
 ```
 
-也可以使用 `curl` 查看事件流：
+也可以通过 HTTP/1.1 入口查看事件流：
 
 ```powershell
-curl.exe --no-buffer http://localhost:5080/events
+curl.exe --no-buffer http://localhost:5120/events
 ```
 
 由于 SSE 是持续连接，使用 `Ctrl+C` 停止命令。

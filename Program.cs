@@ -8,7 +8,6 @@ app.MapGet("/events", async (HttpResponse response, CancellationToken cancellati
 {
 	response.Headers.ContentType = "text/event-stream";
 	response.Headers.CacheControl = "no-cache";
-	response.Headers.Connection = "keep-alive";
 
 	await foreach (var number in GenerateEvents(cancellationToken))
 	{
